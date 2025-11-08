@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish packages and upload release assets'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -137,15 +142,65 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
+      - name: Build CFFI artifacts
+        run: cargo build -p tailwindcss-oxide-cffi --release --target=${{ matrix.target }}
+        env:
+          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+
       - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
         if: ${{ matrix.strip }}
-        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+        shell: bash
+        run: |
+          set -euo pipefail
+          ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+          release_dir="target/${{ matrix.target }}/release"
+          shopt -s nullglob
+          for file in "$release_dir"/*tailwindcss_oxide_cffi*.so \
+                     "$release_dir"/*tailwindcss_oxide_cffi*.dylib; do
+            [ -e "$file" ] || continue
+            ${{ matrix.strip }} "$file"
+          done
+          shopt -u nullglob
+
+      - name: Stage CFFI outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="target/${{ matrix.target }}/release"
+          stage_dir="cffi-${{ matrix.target }}"
+          if [ ! -d "$release_dir" ]; then
+            echo "Missing release directory for target ${{ matrix.target }}: $release_dir"
+            exit 1
+          fi
+          rm -rf "$stage_dir"
+          mkdir -p "$stage_dir"
+          cp crates/cffi/include/tailwindcss_oxide.h "$stage_dir/"
+          shopt -s nullglob
+          copied=false
+          for ext in so dylib dll a lib pdb; do
+            for file in "$release_dir"/*tailwindcss_oxide_cffi*.$ext; do
+              [ -e "$file" ] || continue
+              cp "$file" "$stage_dir/"
+              copied=true
+            done
+          done
+          shopt -u nullglob
+          if [ "$copied" = false ]; then
+            echo "No tailwindcss_oxide_cffi artifacts found under $release_dir"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
           path: ${{ env.OXIDE_LOCATION }}/*.node
+
+      - name: Upload CFFI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cffi-${{ matrix.target }}
+          path: cffi-${{ matrix.target }}
 
   build-freebsd:
     name: Build x86_64-unknown-freebsd (OXIDE)
@@ -274,6 +329,20 @@ jobs:
           cp bindings-x86_64-unknown-linux-musl/* ./npm/linux-x64-musl/
           cp bindings-x86_64-unknown-freebsd/* ./npm/freebsd-x64/
 
+      - name: Package CFFI artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/cffi
+          shopt -s nullglob
+          for dir in ${{ env.OXIDE_LOCATION }}/cffi-*; do
+            [ -d "$dir" ] || continue
+            target=$(basename "$dir")
+            target=${target#cffi-}
+            tar -czf dist/cffi/tailwindcss-oxide-cffi-${target}.tar.gz -C "$dir" .
+          done
+          shopt -u nullglob
+
       - name: Build Tailwind CSS
         run: pnpm run build
         env:
@@ -291,12 +360,19 @@ jobs:
           echo "TAILWINDCSS_VERSION=$(node -e 'console.log(require(`./packages/tailwindcss/package.json`).version);')" >> $GITHUB_ENV
 
       - name: Publish
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true' }}
         run: |
           pnpm --recursive --filter="!@tailwindcss/oxide-wasm32-wasi" publish --tag ${{ env.RELEASE_CHANNEL }} --no-git-checks
           # The wasm package needs a special npm config that isn't read when pnpm --recursive is used
           pushd crates/node/npm/wasm32-wasi; pnpm publish --tag ${{ env.RELEASE_CHANNEL }} --no-git-checks; popd;
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Upload CFFI libraries to GitHub Release
+        if: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true') && hashFiles('dist/cffi/*.tar.gz') != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/cffi/*.tar.gz
 
       - name: Trigger Tailwind Play update
         if: env.RELEASE_CHANNEL == 'latest'

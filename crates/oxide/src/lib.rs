@@ -5,15 +5,12 @@ pub mod glob;
 pub mod paths;
 pub mod scanner;
 pub mod throughput;
+pub mod js;
+pub mod utf16;
 
 pub use glob::GlobEntry;
 pub use scanner::sources::PublicSourceEntry;
 pub use scanner::ChangedContent;
 pub use scanner::Scanner;
-
-// WASM bindings
-#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-pub mod wasm;
-
-#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-pub use wasm::*;
+pub use js::JsCandidateWithPosition;
+pub use utf16::IndexConverter;

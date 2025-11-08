@@ -1,0 +1,7 @@
+{
+  "name": "@tailwindcss/cffi",
+  "private": true,
+  "scripts": {
+    "build": "cargo build -p tailwindcss-oxide-cffi --manifest-path ../../Cargo.toml --release"
+  }
+}

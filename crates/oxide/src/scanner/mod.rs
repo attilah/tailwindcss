@@ -20,6 +20,7 @@ use rayon::prelude::*;
 // Conditional parallel processing helpers
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 mod parallel {
+    use bstr::ByteSlice;
     use rayon::prelude::*;
     use fxhash::FxHashSet;
     

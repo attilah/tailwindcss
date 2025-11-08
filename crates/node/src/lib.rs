@@ -1,9 +1,7 @@
-use utf16::IndexConverter;
-
 #[macro_use]
 extern crate napi_derive;
 
-mod utf16;
+use tailwindcss_oxide::IndexConverter;
 
 #[derive(Debug, Clone)]
 #[napi(object)]

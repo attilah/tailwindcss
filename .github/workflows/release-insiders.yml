@@ -137,15 +137,65 @@ jobs:
           RUST_TARGET: ${{ matrix.target }}
           JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
 
+      - name: Build CFFI artifacts
+        run: cargo build -p tailwindcss-oxide-cffi --release --target=${{ matrix.target }}
+        env:
+          JEMALLOC_SYS_WITH_LG_PAGE: ${{ matrix.page-size }}
+
       - name: Strip debug symbols # https://github.com/rust-lang/rust/issues/46034
         if: ${{ matrix.strip }}
-        run: ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+        shell: bash
+        run: |
+          set -euo pipefail
+          ${{ matrix.strip }} ${{ env.OXIDE_LOCATION }}/*.node
+          release_dir="target/${{ matrix.target }}/release"
+          shopt -s nullglob
+          for file in "$release_dir"/*tailwindcss_oxide_cffi*.so \
+                     "$release_dir"/*tailwindcss_oxide_cffi*.dylib; do
+            [ -e "$file" ] || continue
+            ${{ matrix.strip }} "$file"
+          done
+          shopt -u nullglob
+
+      - name: Stage CFFI outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="target/${{ matrix.target }}/release"
+          stage_dir="cffi-${{ matrix.target }}"
+          if [ ! -d "$release_dir" ]; then
+            echo "Missing release directory for target ${{ matrix.target }}: $release_dir"
+            exit 1
+          fi
+          rm -rf "$stage_dir"
+          mkdir -p "$stage_dir"
+          cp crates/cffi/include/tailwindcss_oxide.h "$stage_dir/"
+          shopt -s nullglob
+          copied=false
+          for ext in so dylib dll a lib pdb; do
+            for file in "$release_dir"/*tailwindcss_oxide_cffi*.$ext; do
+              [ -e "$file" ] || continue
+              cp "$file" "$stage_dir/"
+              copied=true
+            done
+          done
+          shopt -u nullglob
+          if [ "$copied" = false ]; then
+            echo "No tailwindcss_oxide_cffi artifacts found under $release_dir"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
           path: ${{ env.OXIDE_LOCATION }}/*.node
+
+      - name: Upload CFFI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cffi-${{ matrix.target }}
+          path: cffi-${{ matrix.target }}
 
   build-freebsd:
     name: Build x86_64-unknown-freebsd (OXIDE)

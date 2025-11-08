@@ -34,6 +34,36 @@
       "cache": false,
       "persistent": true
     },
+    "@tailwindcss/cffi#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["./include/tailwindcss_oxide.h"],
+      "inputs": [
+        "./src/**/*",
+        "./build.rs",
+        "./package.json",
+        "./Cargo.toml",
+        "../oxide/src/**/*",
+        "../oxide/Cargo.toml",
+        "../Cargo.toml",
+        "../package.json"
+      ]
+    },
+    "@tailwindcss/cffi#dev": {
+      "dependsOn": ["^dev"],
+      "outputs": ["./include/tailwindcss_oxide.h"],
+      "inputs": [
+        "./src/**/*",
+        "./build.rs",
+        "./package.json",
+        "./Cargo.toml",
+        "../oxide/src/**/*",
+        "../oxide/Cargo.toml",
+        "../Cargo.toml",
+        "../package.json"
+      ],
+      "cache": false,
+      "persistent": true
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
