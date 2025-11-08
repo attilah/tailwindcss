@@ -1,11 +1,17 @@
 use crate::glob::split_pattern;
 use crate::GlobEntry;
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+use wasm_bindgen::prelude::*;
 use bexpand::Expression;
 use std::path::PathBuf;
 use tracing::{event, Level};
 
 use super::auto_source_detection::IGNORED_CONTENT_DIRS;
 
+#[cfg_attr(
+    all(target_arch = "wasm32", target_os = "unknown"),
+    wasm_bindgen
+)]
 #[derive(Debug, Clone)]
 pub struct PublicSourceEntry {
     /// Base path of the glob
@@ -16,6 +22,30 @@ pub struct PublicSourceEntry {
 
     /// Negated flag
     pub negated: bool,
+}
+
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+#[wasm_bindgen]
+impl PublicSourceEntry {
+    #[wasm_bindgen(constructor)]
+    pub fn new(base: String, pattern: String, negated: bool) -> Self {
+        Self { base, pattern, negated }
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn base(&self) -> String {
+        self.base.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn pattern(&self) -> String {
+        self.pattern.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn negated(&self) -> bool {
+        self.negated
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
