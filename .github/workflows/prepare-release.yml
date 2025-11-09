@@ -332,20 +332,6 @@ jobs:
           cp bindings-x86_64-unknown-linux-musl/* ./npm/linux-x64-musl/
           cp bindings-x86_64-unknown-freebsd/* ./npm/freebsd-x64/
 
-      - name: Package CFFI artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist/cffi
-          shopt -s nullglob
-          for dir in ${{ env.OXIDE_LOCATION }}/cffi-*; do
-            [ -d "$dir" ] || continue
-            target=$(basename "$dir")
-            target=${target#cffi-}
-            tar -czf dist/cffi/tailwindcss-oxide-cffi-${target}.tar.gz -C "$dir" .
-          done
-          shopt -u nullglob
-
       - name: Build Tailwind CSS
         run: pnpm run build
         env:
@@ -392,4 +378,4 @@ jobs:
             packages/@tailwindcss-standalone/dist/tailwindcss-macos-arm64
             packages/@tailwindcss-standalone/dist/tailwindcss-macos-x64
             packages/@tailwindcss-standalone/dist/tailwindcss-windows-x64.exe
-            dist/cffi/*.tar.gz
+            dist/tailwindcss-oxide-cffi-*.tar.gz

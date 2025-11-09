@@ -329,20 +329,6 @@ jobs:
           cp bindings-x86_64-unknown-linux-musl/* ./npm/linux-x64-musl/
           cp bindings-x86_64-unknown-freebsd/* ./npm/freebsd-x64/
 
-      - name: Package CFFI artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist/cffi
-          shopt -s nullglob
-          for dir in ${{ env.OXIDE_LOCATION }}/cffi-*; do
-            [ -d "$dir" ] || continue
-            target=$(basename "$dir")
-            target=${target#cffi-}
-            tar -czf dist/cffi/tailwindcss-oxide-cffi-${target}.tar.gz -C "$dir" .
-          done
-          shopt -u nullglob
-
       - name: Build Tailwind CSS
         run: pnpm run build
         env:
@@ -369,10 +355,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Upload CFFI libraries to GitHub Release
-        if: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true') && hashFiles('dist/cffi/*.tar.gz') != '' }}
+        if: ${{ (github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true') && hashFiles('dist/tailwindcss-oxide-cffi-*.tar.gz') != '' }}
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/cffi/*.tar.gz
+          files: dist/tailwindcss-oxide-cffi-*.tar.gz
 
       - name: Trigger Tailwind Play update
         if: env.RELEASE_CHANNEL == 'latest'
