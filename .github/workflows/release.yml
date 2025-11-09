@@ -307,16 +307,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/tailwindcss-oxide-cffi-*.tar.gz
-
-      - name: Trigger Tailwind Play update
-        if: env.RELEASE_CHANNEL == 'latest'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.TAILWIND_PLAY_TOKEN }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'tailwindlabs',
-              repo: 'upgrades',
-              ref: 'main',
-              workflow_id: 'upgrade-tailwindcss.yml'
-            })
