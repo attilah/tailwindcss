@@ -26,40 +26,49 @@ jobs:
           # Windows
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            build_cffi: true
           - os: windows-latest
             target: aarch64-pc-windows-msvc
+            build_cffi: true
           # macOS
           - os: macos-latest
             target: x86_64-apple-darwin
+            build_cffi: true
             strip: strip -x # Must use -x on macOS. This produces larger results on linux.
           - os: macos-latest
             target: aarch64-apple-darwin
+            build_cffi: true
             page-size: 14
             strip: strip -x # Must use -x on macOS. This produces larger results on linux.
           # Linux
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            build_cffi: true
             strip: strip
             container:
               image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
+            build_cffi: true
             strip: llvm-strip
             container:
               image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           - os: ubuntu-latest
             target: armv7-unknown-linux-gnueabihf
+            build_cffi: true
             strip: llvm-strip
             container:
               image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
+            build_cffi: true
             strip: aarch64-linux-musl-strip
             download: true
             container:
               image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            build_cffi: true
             strip: strip
             download: true
             container:
